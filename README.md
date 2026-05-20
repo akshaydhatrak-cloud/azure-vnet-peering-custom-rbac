@@ -1,6 +1,6 @@
 # Azure VNet Peering and Custom RBAC
 
-Azure infrastructure project for deploying two virtual networks, placing a test VM in each network, connecting the networks with VNet peering, and assigning a scoped custom RBAC role for VM operations.
+Azure infrastructure project that creates two virtual networks, deploys one test VM in each network, connects the networks with VNet peering, and assigns a custom RBAC role for basic VM operations.
 
 ## Features
 
@@ -27,8 +27,6 @@ Azure infrastructure project for deploying two virtual networks, placing a test 
 
 ```text
 azure-vnet-peering-custom-rbac/
-|-- assets/
-|   `-- architecture.svg
 |-- infra/
 |   |-- main.bicep
 |   `-- modules/
@@ -86,16 +84,17 @@ Validate the custom role as the onboarded employee:
   -VmName rand-vm-a
 ```
 
-## Architecture
+## Resources
 
-The Bicep deployment creates two isolated address spaces:
+The Bicep template creates:
 
-- `rand-workload-vnet-a` with `rand-vm-a`
-- `rand-workload-vnet-b` with `rand-vm-b`
-
-Each VM runs a minimal Nginx page so the workload can be tested over private IP. Bidirectional VNet peering enables private connectivity between the two networks without transitive routing or gateway transit.
-
-The custom role is defined at the subscription assignable scope but assigned only at the lab resource group scope. This keeps the employee aligned with least privilege: they can read the network, storage, and VM resources in the lab and can start or restart VMs, but cannot create, delete, stop, resize, or modify resources.
+- `rand-workload-vnet-a`
+- `rand-workload-vnet-b`
+- `rand-vm-a`
+- `rand-vm-b`
+- Bidirectional VNet peerings
+- Storage account
+- Network security group
 
 ## Custom Role Permissions
 
@@ -109,7 +108,3 @@ The `Computer Operator` custom role allows:
 - Restart virtual machines
 
 The role intentionally excludes VM deletion, VM creation, deallocation, network modification, storage data access, and role assignment permissions.
-
-## Screenshots
-
-![Azure VNet peering and custom RBAC architecture](assets/architecture.svg)
