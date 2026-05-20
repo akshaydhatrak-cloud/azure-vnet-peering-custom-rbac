@@ -1,6 +1,6 @@
 # Azure VNet Peering and Custom RBAC
 
-This repository implements the Rand Enterprises Azure evaluation brief. It creates two virtual networks, deploys a test workload VM into each network, connects the networks with VNet peering, and onboards an employee with a least-privilege custom RBAC role named `Computer Operator`.
+Azure infrastructure project for deploying two virtual networks, placing a test VM in each network, connecting the networks with VNet peering, and assigning a scoped custom RBAC role for VM operations.
 
 ## Features
 
@@ -29,8 +29,6 @@ This repository implements the Rand Enterprises Azure evaluation brief. It creat
 azure-vnet-peering-custom-rbac/
 |-- assets/
 |   `-- architecture.svg
-|-- docs/
-|   `-- inferred-components.md
 |-- infra/
 |   |-- main.bicep
 |   `-- modules/
@@ -112,23 +110,6 @@ The `Computer Operator` custom role allows:
 
 The role intentionally excludes VM deletion, VM creation, deallocation, network modification, storage data access, and role assignment permissions.
 
-## Deliverables Mapped to the Prompt
-
-- Identify the networks: deployment outputs list `rand-workload-vnet-a` and `rand-workload-vnet-b`
-- Workloads deployed to the networks: `rand-vm-a` and `rand-vm-b`
-- Establish connectivity: bidirectional VNet peering in `infra/main.bicep`
-- Onboard a user: `scripts/deploy.ps1`
-- Create and assign a custom role: `rbac/computer-operator-role.template.json` and `scripts/deploy.ps1`
-
 ## Screenshots
 
-This project was supplied as a text brief, so no source portal screenshots were available. The architecture visual below documents the implemented deployment shape.
-
 ![Azure VNet peering and custom RBAC architecture](assets/architecture.svg)
-
-Recommended Azure Portal screenshots after deployment:
-
-- Virtual network peering status
-- VM private IP connectivity test
-- Custom role definition
-- Employee role assignment
