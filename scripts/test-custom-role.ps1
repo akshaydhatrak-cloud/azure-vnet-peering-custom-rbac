@@ -5,6 +5,12 @@ param(
   [string]$VmName = "rand-vm-a"
 )
 
+$ErrorActionPreference = "Stop"
+
+if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
+  throw "Azure CLI is required but was not found in PATH."
+}
+
 Write-Host "Sign in as the onboarded employee when the browser prompt appears."
 az login --tenant $TenantId --username $EmployeeUserPrincipalName
 

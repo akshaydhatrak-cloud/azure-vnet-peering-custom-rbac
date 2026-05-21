@@ -10,8 +10,16 @@ param(
   [string]$ProjectPrefix = "rand"
 )
 
+$ErrorActionPreference = "Stop"
+
+if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
+  throw "Azure CLI is required but was not found in PATH."
+}
+
 $subscriptionId = az account show --query id -o tsv
 $resourceGroupId = "/subscriptions/$subscriptionId/resourceGroups/$ResourceGroupName"
+$templatePath = Join-Path $PSScriptRoot "../infra/main.bicep"
+$roleTemplatePath = Join-Path $PSScriptRoot "../rbac/computer-operator-role.template.json"
 
 az group create `
   --name $ResourceGroupName `
@@ -19,7 +27,7 @@ az group create `
 
 az deployment group create `
   --resource-group $ResourceGroupName `
-  --template-file "../infra/main.bicep" `
+  --template-file $templatePath `
   --parameters `
     location=$Location `
     projectPrefix=$ProjectPrefix `
@@ -42,7 +50,6 @@ if (-not $existingUserId) {
     -o tsv
 }
 
-$roleTemplatePath = Join-Path $PSScriptRoot "../rbac/computer-operator-role.template.json"
 $roleDefinitionPath = Join-Path $env:TEMP "computer-operator-role-$subscriptionId.json"
 $roleDefinition = Get-Content $roleTemplatePath -Raw | ConvertFrom-Json
 $roleDefinition.AssignableScopes = @("/subscriptions/$subscriptionId")
