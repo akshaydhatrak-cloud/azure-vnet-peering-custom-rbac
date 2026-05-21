@@ -1,24 +1,24 @@
-# Azure VNet Peering and Custom RBAC
+# Internship Experience: Azure VNet Peering and Custom RBAC
 
 ## Overview
 
-This project deploys two Azure virtual networks, places a Linux VM in each network, connects the networks with VNet peering, and assigns a limited custom RBAC role for basic VM operations. The setup is configured for a production-like environment while staying small enough to deploy and validate quickly.
+During my internship work, I deployed two Azure virtual networks, placed a Linux VM in each network, connected the networks with VNet peering, and assigned a limited custom RBAC role for basic VM operations. The setup was configured like a production-style environment while staying small enough to validate quickly.
 
 ## Architecture
 
-The network path is:
+The network path I implemented was:
 
 ```text
 VM A -> VNet A -> VNet peering -> VNet B -> VM B
 ```
 
-The access-control path is:
+The access-control path was:
 
 ```text
 Azure AD user -> Custom RBAC role -> read/start/restart VM permissions
 ```
 
-Architecture files are in `architecture/`:
+Architecture notes are in `architecture/`:
 
 - `architecture.mmd`
 - `architecture.svg`
@@ -34,15 +34,15 @@ Architecture files are in `architecture/`:
 - Azure Storage Account for read-access validation
 - Azure Bicep
 
-## Deployment Steps
+## Implementation Steps
 
-1. Sign in with Azure CLI.
-2. Deploy `infra/main.bicep` using `scripts/deploy.ps1`.
-3. Confirm both VNets and both Linux VMs are created.
-4. Validate private connectivity from VM A to VM B.
-5. Create or update the `Computer Operator` custom role.
-6. Assign the custom role to the selected Azure AD user.
-7. Test that allowed actions work and blocked actions fail.
+1. Signed in with Azure CLI.
+2. Deployed `infra/main.bicep` using `scripts/deploy.ps1`.
+3. Confirmed both VNets and both Linux VMs were created.
+4. Validated private connectivity from VM A to VM B.
+5. Created or updated the `Computer Operator` custom role.
+6. Assigned the custom role to the selected Azure AD user.
+7. Tested that allowed actions worked and blocked actions failed.
 
 Deploy the environment:
 
@@ -69,14 +69,14 @@ Validate connectivity:
   -VmBName netops-vm-b
 ```
 
-## Troubleshooting
+## Troubleshooting Notes
 
 - If VM-to-VM ping fails, check that both peering directions were created.
 - If SSH fails, check `AdminSourceAddressPrefix` and the NSG rule.
 - If the custom role assignment fails, confirm the account running the script can create role definitions and assignments.
 - If the operator can deallocate a VM, review the custom role actions because deallocation should not be included.
 
-## What I Learned
+## Key Takeaways
 
 - VNet peering allows private connectivity without exposing traffic through public IPs.
 - Azure RBAC can separate operational access from full infrastructure administration.
