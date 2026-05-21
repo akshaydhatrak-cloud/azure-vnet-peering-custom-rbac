@@ -1,110 +1,83 @@
 # Azure VNet Peering and Custom RBAC
 
-Azure infrastructure project that creates two virtual networks, deploys one test VM in each network, connects the networks with VNet peering, and assigns a custom RBAC role for basic VM operations.
+## Overview
 
-## Features
+This project deploys two Azure virtual networks, places a Linux VM in each network, connects the networks with VNet peering, and assigns a limited custom RBAC role for basic VM operations. The setup is configured for a production-like environment while staying small enough to deploy and validate quickly.
 
-- Two Azure virtual networks in the selected region
-- One Ubuntu web workload VM per VNet
-- Bidirectional VNet peering for private connectivity
-- Storage account for read-permission validation
-- Custom RBAC role with read access to network, storage, and VM resources
-- Permission to start and restart VMs only
-- Employee onboarding script for the default Microsoft Entra ID tenant
-- Connectivity and RBAC validation scripts
+## Architecture
 
-## Tech Stack
-
-- Azure Bicep
-- Azure CLI
-- Microsoft Entra ID
-- Azure RBAC
-- Azure Virtual Network
-- Azure Virtual Machines
-- PowerShell
-
-## Project Structure
+The network path is:
 
 ```text
-azure-vnet-peering-custom-rbac/
-|-- infra/
-|   |-- main.bicep
-|   `-- modules/
-|       `-- linux-web-vm.bicep
-|-- rbac/
-|   `-- computer-operator-role.template.json
-|-- scripts/
-|   |-- deploy.ps1
-|   |-- test-custom-role.ps1
-|   `-- validate-connectivity.ps1
-`-- README.md
+VM A -> VNet A -> VNet peering -> VNet B -> VM B
 ```
 
-## Setup
+The access-control path is:
 
-Prerequisites:
+```text
+Azure AD user -> Custom RBAC role -> read/start/restart VM permissions
+```
 
-- Azure subscription with administrator access
-- Azure CLI signed in as a user that can create resources, users, custom roles, and role assignments
-- SSH public key for VM access
-- PowerShell
+Architecture files are in `architecture/`:
 
-Deploy the lab:
+- `architecture.mmd`
+- `architecture.svg`
+
+## Services Used
+
+- Azure Virtual Network
+- Azure Virtual Machines
+- VNet Peering
+- Network Security Groups
+- Azure AD
+- Azure RBAC
+- Azure Storage Account for read-access validation
+- Azure Bicep
+
+## Deployment Steps
+
+1. Sign in with Azure CLI.
+2. Deploy `infra/main.bicep` using `scripts/deploy.ps1`.
+3. Confirm both VNets and both Linux VMs are created.
+4. Validate private connectivity from VM A to VM B.
+5. Create or update the `Computer Operator` custom role.
+6. Assign the custom role to the selected Azure AD user.
+7. Test that allowed actions work and blocked actions fail.
+
+Deploy the environment:
 
 ```powershell
 cd scripts
 .\deploy.ps1 `
-  -ResourceGroupName rg-rand-vnet-rbac `
+  -ResourceGroupName rg-vnet-rbac `
   -Location uksouth `
   -AdminUsername azureuser `
   -AdminSshPublicKey "ssh-rsa AAAA..." `
   -AdminSourceAddressPrefix "203.0.113.10/32" `
-  -EmployeeDisplayName "Rand Computer Operator" `
-  -EmployeeUserPrincipalName "rand.operator@yourtenant.onmicrosoft.com" `
-  -EmployeePassword "Temporary-Password-Here" `
-  -ProjectPrefix rand
+  -EmployeeDisplayName "Computer Operator" `
+  -EmployeeUserPrincipalName "operator@tenant.onmicrosoft.com" `
+  -EmployeePassword "Temporary-Password" `
+  -ProjectPrefix netops
 ```
 
-Validate VNet peering connectivity:
+Validate connectivity:
 
 ```powershell
 .\validate-connectivity.ps1 `
-  -ResourceGroupName rg-rand-vnet-rbac `
-  -VmAName rand-vm-a `
-  -VmBName rand-vm-b
+  -ResourceGroupName rg-vnet-rbac `
+  -VmAName netops-vm-a `
+  -VmBName netops-vm-b
 ```
 
-Validate the custom role as the onboarded employee:
+## Troubleshooting
 
-```powershell
-.\test-custom-role.ps1 `
-  -ResourceGroupName rg-rand-vnet-rbac `
-  -EmployeeUserPrincipalName "rand.operator@yourtenant.onmicrosoft.com" `
-  -TenantId "00000000-0000-0000-0000-000000000000" `
-  -VmName rand-vm-a
-```
+- If VM-to-VM ping fails, check that both peering directions were created.
+- If SSH fails, check `AdminSourceAddressPrefix` and the NSG rule.
+- If the custom role assignment fails, confirm the account running the script can create role definitions and assignments.
+- If the operator can deallocate a VM, review the custom role actions because deallocation should not be included.
 
-## Resources
+## What I Learned
 
-The Bicep template creates:
-
-- `rand-workload-vnet-a`
-- `rand-workload-vnet-b`
-- `rand-vm-a`
-- `rand-vm-b`
-- Bidirectional VNet peerings
-- Storage account
-- Network security group
-
-## Custom Role Permissions
-
-The `Computer Operator` custom role allows:
-
-- Read resource groups and deployments
-- Read network resources
-- Read storage resources
-- Read VM metadata and instance view
-- Start virtual machines
-- Restart virtual machines
-
-The role intentionally excludes VM deletion, VM creation, deallocation, network modification, storage data access, and role assignment permissions.
+- VNet peering allows private connectivity without exposing traffic through public IPs.
+- Azure RBAC can separate operational access from full infrastructure administration.
+- Validation scripts are useful because network and permission issues are easier to catch right after deployment.
