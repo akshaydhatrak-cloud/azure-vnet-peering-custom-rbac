@@ -1,110 +1,70 @@
-# Azure VNet Peering and Custom RBAC
+# Azure VNet Peering & RBAC Access Control
 
-Azure infrastructure project that creates two virtual networks, deploys one test VM in each network, connects the networks with VNet peering, and assigns a custom RBAC role for basic VM operations.
+## Business Objective
 
-## Features
+This project builds a production-like Azure network layout with two isolated virtual networks and controlled access for a limited operator role. The goal is to validate private connectivity between network segments while keeping administrative permissions restricted.
 
-- Two Azure virtual networks in the selected region
-- One Ubuntu web workload VM per VNet
-- Bidirectional VNet peering for private connectivity
-- Storage account for read-permission validation
-- Custom RBAC role with read access to network, storage, and VM resources
-- Permission to start and restart VMs only
-- Employee onboarding script for the default Microsoft Entra ID tenant
-- Connectivity and RBAC validation scripts
+## Cloud Architecture Overview
 
-## Tech Stack
+The Bicep deployment creates two VNets, one workload subnet in each VNet, and one Linux VM in each subnet. Bidirectional VNet peering allows private communication between the two network segments. A shared network security group controls inbound SSH, HTTP, and internal ICMP traffic.
 
-- Azure Bicep
-- Azure CLI
-- Microsoft Entra ID
-- Azure RBAC
+Azure AD and Azure RBAC are used to create and assign a custom `Computer Operator` role. The role can read resources and start or restart VMs, but it cannot create, delete, or modify core infrastructure.
+
+The draw.io source is available at `docs/architecture.drawio`.
+
+## Services Used
+
 - Azure Virtual Network
 - Azure Virtual Machines
-- PowerShell
+- VNet Peering
+- Network Security Groups
+- Azure AD
+- Azure RBAC
+- Azure Storage Account for read-access validation
+- Azure Bicep
 
-## Project Structure
+## Deployment Workflow
 
-```text
-azure-vnet-peering-custom-rbac/
-|-- infra/
-|   |-- main.bicep
-|   `-- modules/
-|       `-- linux-web-vm.bicep
-|-- rbac/
-|   `-- computer-operator-role.template.json
-|-- scripts/
-|   |-- deploy.ps1
-|   |-- test-custom-role.ps1
-|   `-- validate-connectivity.ps1
-`-- README.md
-```
+1. Create or select an Azure resource group.
+2. Deploy `infrastructure/bicep/main.bicep` using the provided PowerShell script.
+3. Provision two VNets with non-overlapping address spaces.
+4. Deploy one Linux web VM into each workload subnet.
+5. Configure bidirectional VNet peering between the VNets.
+6. Create or update the custom RBAC role from `infrastructure/rbac/`.
+7. Assign the role to the selected Azure AD user at the resource group scope.
+8. Validate VM-to-VM connectivity and confirm the RBAC permission boundary.
 
-## Setup
-
-Prerequisites:
-
-- Azure subscription with administrator access
-- Azure CLI signed in as a user that can create resources, users, custom roles, and role assignments
-- SSH public key for VM access
-- PowerShell
-
-Deploy the lab:
+Example deployment command:
 
 ```powershell
-cd scripts
+cd infrastructure/scripts
 .\deploy.ps1 `
-  -ResourceGroupName rg-rand-vnet-rbac `
+  -ResourceGroupName rg-vnet-rbac `
   -Location uksouth `
   -AdminUsername azureuser `
   -AdminSshPublicKey "ssh-rsa AAAA..." `
   -AdminSourceAddressPrefix "203.0.113.10/32" `
-  -EmployeeDisplayName "Rand Computer Operator" `
-  -EmployeeUserPrincipalName "rand.operator@yourtenant.onmicrosoft.com" `
-  -EmployeePassword "Temporary-Password-Here" `
-  -ProjectPrefix rand
+  -EmployeeDisplayName "Computer Operator" `
+  -EmployeeUserPrincipalName "operator@tenant.onmicrosoft.com" `
+  -EmployeePassword "Temporary-Password" `
+  -ProjectPrefix netops
 ```
 
-Validate VNet peering connectivity:
+## Security Considerations
 
-```powershell
-.\validate-connectivity.ps1 `
-  -ResourceGroupName rg-rand-vnet-rbac `
-  -VmAName rand-vm-a `
-  -VmBName rand-vm-b
-```
+- VNets use separate address spaces and connect only through explicit peering.
+- SSH access is restricted by the `AdminSourceAddressPrefix` parameter.
+- The custom RBAC role follows a least-privilege model for basic VM operations.
+- The role does not include VM deletion, network modification, role assignment, or storage data access.
+- Storage is configured with HTTPS-only access and public blob access disabled.
 
-Validate the custom role as the onboarded employee:
+## Performance and Scalability Improvements
 
-```powershell
-.\test-custom-role.ps1 `
-  -ResourceGroupName rg-rand-vnet-rbac `
-  -EmployeeUserPrincipalName "rand.operator@yourtenant.onmicrosoft.com" `
-  -TenantId "00000000-0000-0000-0000-000000000000" `
-  -VmName rand-vm-a
-```
+VNet peering keeps traffic on the Azure backbone and avoids public routing between workload segments. The Bicep modules allow the same structure to be reused with different prefixes, locations, or VM sizes.
 
-## Resources
+## Operational Insights
 
-The Bicep template creates:
-
-- `rand-workload-vnet-a`
-- `rand-workload-vnet-b`
-- `rand-vm-a`
-- `rand-vm-b`
-- Bidirectional VNet peerings
-- Storage account
-- Network security group
-
-## Custom Role Permissions
-
-The `Computer Operator` custom role allows:
-
-- Read resource groups and deployments
-- Read network resources
-- Read storage resources
-- Read VM metadata and instance view
-- Start virtual machines
-- Restart virtual machines
-
-The role intentionally excludes VM deletion, VM creation, deallocation, network modification, storage data access, and role assignment permissions.
+- `validate-connectivity.ps1` checks private connectivity between the two VMs.
+- `test-custom-role.ps1` validates allowed and blocked RBAC actions.
+- Network rules should be reviewed before moving from testing to a stricter production subnet model.
+- Resource naming is prefix-based so multiple environments can be deployed without mixing assets.

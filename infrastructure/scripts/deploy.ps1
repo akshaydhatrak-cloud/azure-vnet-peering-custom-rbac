@@ -19,7 +19,7 @@ az group create `
 
 az deployment group create `
   --resource-group $ResourceGroupName `
-  --template-file "../infra/main.bicep" `
+  --template-file "../bicep/main.bicep" `
   --parameters `
     location=$Location `
     projectPrefix=$ProjectPrefix `
