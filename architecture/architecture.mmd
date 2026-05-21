@@ -1,0 +1,17 @@
+flowchart LR
+  subgraph vnetA[VNet A - 10.10.0.0/16]
+    vmA[Linux VM A]
+  end
+
+  subgraph vnetB[VNet B - 10.20.0.0/16]
+    vmB[Linux VM B]
+  end
+
+  vmA <-- private connectivity --> peering[VNet peering]
+  peering <-- private connectivity --> vmB
+  nsg[Network security group] -. SSH/HTTP/ICMP rules .-> vmA
+  nsg -. SSH/HTTP/ICMP rules .-> vmB
+  aad[Azure AD user] --> rbac[Custom RBAC role]
+  rbac -. start/restart/read .-> vmA
+  rbac -. start/restart/read .-> vmB
+  rbac -. read validation .-> storage[Storage account]
